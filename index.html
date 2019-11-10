@@ -1,0 +1,185 @@
+<!DOCTYPE HTML>
+
+<html>
+
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>Variable Font Demo</title>
+	<style>
+		* {
+			padding: 0;
+			margin: 0;
+			border: 0;
+		}
+		/* @font-face {
+            font-family: 'Variable';
+            src: url('./variable.woff2') format('woff2-variations');
+        } */
+		@font-face {
+			font-family: 'Variable';
+			src: url('./variable.ttf') format('truetype');
+		}
+
+		.center {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			min-height: 100vh;
+			max-height: 100vh;
+			position: relative;
+		}
+
+		h1 {
+			font-family: 'Variable', sans-serif;
+			font-variation-settings: 'wght'400;
+			font-size: 60px;
+			font-weight: normal; /* needed. otherwise duplicate typeface on mobile */
+			text-align: center;
+		}
+
+		.hint,
+		.hint-ios {
+			font-family: 'Variable', sans-serif;
+			font-variation-settings: 'wght'300;
+			position: absolute;
+			bottom: 14px;
+			font-size: 14px;
+			opacity: 0.3;
+			font-weight: normal; /* needed. otherwise duplicate typeface on mobile */
+			display: none;
+			text-align: center;
+		}
+
+		.hint-ios {
+			opacity: 0.8;
+		}
+
+		@media (pointer: fine) {
+			/* Rules for devices with mouse here */
+			.hint {
+				display: block;
+			}
+		}
+
+		@media only screen and (min-width: 1000px) {
+			h1 {
+				font-size: 100px;
+			}
+		}
+
+	</style>
+</head>
+
+<body>
+	<div class="center">
+		<h1 class="text">Lucid Lab</h1>
+		<p class="hint">Use your mouse!</p>
+		<p class="hint-ios">iOs? Toggle: Settings > Safari > Motion and Orientation access!</p>
+	</div>
+
+	<script type="text/javascript">		
+		(function () {
+
+			let windowWidth = calculateWindowSize().width;
+			let windowHeight = calculateWindowSize().height;
+			let text;
+
+			function calculateWindowSize(){
+				const width = window.innerWidth;
+				const height = window.innerHeight;
+	
+				return { width, height };
+			}
+
+			function scale(num, inMin, inMax, outMin, outMax) {
+				return (num - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
+			}
+
+			function is_touch_device() {
+				const prefixes = ' -webkit- -moz- -o- -ms- '.split(' ');
+				const mq = function(query) {
+					return window.matchMedia(query).matches;
+				}
+
+				if (('ontouchstart' in window) || window.DocumentTouch && document instanceof DocumentTouch) {
+					return true;
+				}
+
+				// include the 'heartz' as a way to have a non matching MQ to help terminate the join
+				// https://git.io/vznFH
+				const query = ['(', prefixes.join('touch-enabled),('), 'heartz', ')'].join('');
+				return mq(query);
+			}
+
+			function initOrientation() {
+				if (window.DeviceOrientationAbsoluteEvent) {
+					console.log('Supports DeviceOrientationAbsoluteEvent')
+					window.addEventListener('DeviceOrientationAbsoluteEvent', adjustFontOnOrientation)
+				} // If not, check if the device sends any orientation data
+				else if (window.DeviceOrientationEvent) {
+					console.log('Supports DeviceOrientationEvent')
+					window.addEventListener('deviceorientation', adjustFontOnOrientation, true)
+				} else {
+					console.log('Sorry, try again on a compatible mobile device for orientation stuff!')
+				}
+			}
+
+			function adjustFontOnOrientation(event) {
+				const alpha = event.alpha; // z axis: 0 - 360
+				const beta = event.beta; // x axis: -180 to 180
+				const gamma = event.gamma; // y axis: -90 to 90
+				// console.log('alpha: ', alpha)
+				// console.log('beta: ', beta)
+				// console.log('gamma: ', gamma)
+
+				// clip range
+				const range = 30;
+				let clippedBeta = 0;
+				clippedBeta = beta < -range ? -range : beta;
+				clippedBeta = beta > range ? range : beta;
+
+				const fontAxisWidthValue = scale(clippedBeta, -range, range, 100, 900);
+				text.style['font-variation-settings'] = "'wght'" + fontAxisWidthValue;
+			}
+
+			function init() {
+				/* Credits: https://stackoverflow.com/a/4819886/1121268 */
+				text = document.querySelectorAll('.text')[0];
+
+				document.body.addEventListener('mousemove', function(event) {
+					const posX = event.clientX;
+					const posY = event.clientY;
+
+					// calculate percentage of mouse position
+					const percentageX = posX / windowWidth;
+					const percentageY = posY / windowHeight;
+
+					// mapping font axis width to X position
+					// min 100, max 900
+					const fontAxisWidthValue = scale(percentageX, 0, 1, 100, 900);
+					text.style['font-variation-settings'] = "'wght'" + fontAxisWidthValue;
+				});
+				
+				window.addEventListener('resize', function(event) {
+					// recalculate window size
+					windowWidth = calculateWindowSize().width;
+					windowHeight = calculateWindowSize().height;
+				});
+
+				// show device orientation hint on touch devices
+				if (is_touch_device()) {
+					const hint = document.querySelectorAll('.hint-ios')[0];
+					hint.style.display = 'block';
+				}
+				// console.log('is_touch_device(): ', is_touch_device());
+
+				initOrientation()
+			}
+
+			init();
+		})();
+	</script>
+</body>
+
+</html>
